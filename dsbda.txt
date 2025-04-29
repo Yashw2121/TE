@@ -1,0 +1,530 @@
+A1 :
+
+import numpy as np
+import pandas as pd
+
+# Reading data from dataset and load it into pandas DataFrame
+
+df = pd.read_csv('./data/iris.csv')
+
+df.head()
+df
+### Data Preprocessing ###
+df.describe()
+# Checking if null value is present or not
+df.isnull()
+# Getting count of the null values
+df.isnull().sum()
+# Get the shape of the dataset
+df.shape
+
+# Get the data types of the dataset
+df.dtypes
+df.info()
+## Data Formating ##
+# Converting the 'species' column into categorical data
+df['species'] = df['species'].astype('category')
+
+df.info()
+# Converting categorical data into Quantitative
+df_encoded = pd.get_dummies(df, columns=['species'])
+
+df_encoded
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+A2 :
+
+import numpy as np
+import pandas as pd
+data = {
+    'StudentID': range(1, 11),
+    'Maths': [78, 85, np.nan, 95, 105, 65, 72, 89, 90, 300], # 300 is an outlier
+    'Science':[88, 91, 85, np.nan, 89, 65, 70, 75, 78, 80],
+    'English':[np.nan, 80, 70, 75, 65, 60, 100, 98, 85, 90],
+    'Attendance': [90, 85, 80, 75, 70, 65, 60, 55, 100, 95],
+    'Parental_Education_Level': ['Bachelor', 'Master', 'PhD', 'Bachelor', 'Master', 'Bachelor',
+                                 'High School', 'High School', np.nan, 'PhD'],
+}
+df = pd.DataFrame(data)
+
+df.set_index('StudentID', inplace=True)
+
+df
+    
+## **Scanning for missing values and inconsistencies** ##
+print("Missing Values:\n", df.isnull().sum())
+**Handling the missing values**
+- Numeric cols -> mean imputation
+- Categorical cols -> mode imputation
+# Filling the missing values with mean
+df['Maths'].fillna(df['Maths'].mean())
+df['Science'].fillna(df['Science'].mean())
+df['English'].fillna(df['English'].mean())
+
+# Filling categorical misssing values with mode
+df['Parental_Education_Level'].fillna(df['Parental_Education_Level'].mode()[0])
+
+df
+## **Handling Outlier** ##
+def detect_outliers_iqr(column):
+    Q1 = column.quantile(0.25)
+    Q3 = column.quantile(0.75)
+    IQR = Q3 - Q1
+    lower = Q1 - 1.5 * IQR
+    upper = Q3 + 1.5 * IQR
+    return column[(column < lower) | (column > upper)]
+
+outliers_math = detect_outliers_iqr(df['Maths'])
+print("Outliers in Math Score:\n", outliers_math)
+
+# Handling outlier via Winsorization method
+def winsorize_series(column):
+    Q1 = column.quantile(0.25)
+    Q3 = column.quantile(0.75)
+    IQR = Q3 - Q1
+    lower = Q1 - 1.5 * IQR
+    upper = Q3 + 1.5 * IQR
+    return column.clip(lower, upper)
+
+df['Maths'] = winsorize_series(df['Maths'])
+
+
+
+print(detect_outliers_iqr(df['Maths']))
+df['Attendance'].skew()
+## **Data Transformation** ##
+Attendance is **right-skewed**, and we want to normalize it using **log transformation**
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Plot orignal Attendance distribution
+sns.histplot(df['Attendance'], kde=True)
+plt.title("Orignal Attendance Distribution")
+plt.show()
+# Apply log transformation
+df['Log_Attendance'] = np.log(df['Attendance'])
+
+# Plot tranformed
+sns.histplot(df['Log_Attendance'], kde=True)
+plt.title("Log Transformed Attendance Distribution")
+plt.show()
+
+------------------------------------------------------------------------------------------------------------------------------
+
+A3 :
+
+import numpy as np
+import pandas as pd
+## **Summary statastics grouped by categorical variable** ##
+# Sample Data
+data = {
+    'Name': ['Anuj', 'Abhshek', 'Yash', 'Rahul', 'Krishna', 'Priyanshu'],
+    'Age_Group': ['20-29', '30-39', '20-29', '30-39', '40-49', '40-49'],
+    'Income': [30000, 40000, 50000, 60000, 70000, 40000]
+}
+
+df = pd.DataFrame(data)
+
+# Group by age and calculate statastics
+summary_stat = df.groupby('Age_Group')['Income'].agg(['mean', 'median', 'min', 'max', 'std'])
+
+# Income By Group
+income_by_group = df.groupby('Age_Group')['Income'].apply(list)
+
+print("Summary Statastics")
+print(summary_stat)
+
+
+print("Income By Group")
+print(income_by_group)
+## **Statastical Species for IRIS datast** ##
+iris_df = pd.read_csv('./data/iris.csv')
+iris_df
+
+
+species_list = ['setosa', 'versicolor', 'virginica']
+
+for species in species_list:
+    print(f"Statastical For Iris-{species}")
+    subset = iris_df[iris_df['species'] == species]
+    print(subset.describe())
+    
+------------------------------------------------------------------------------------------------------------------------------
+
+A4 :
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Importing for Linear Regression algorithm
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+boston_house_df = pd.read_csv('./data/BostonHousing.csv')
+boston_house_df.head()
+### Exploring the data ###
+boston_house_df.info()
+
+boston_house_df.describe()
+# Checking for missing values
+boston_house_df.isnull().sum()
+# Either you can remove the column 'rm' or fill with the values 
+boston_house_df['rm'] = boston_house_df['rm'].fillna(boston_house_df['rm'].mean())
+# Correlation Heatmap
+plt.figure(figsize=(12, 8))
+sns.heatmap(boston_house_df.corr(), annot=True, cmap='coolwarm')
+plt.title("Featrue Correlation with House Price")
+plt.show();
+From the above graph we can say that
+- `RM`(Avg No. of rooms) has **Strong Positive Correlation** with `PRICE` 0.7 -> more rooms, higher price
+- `LSTAT` (%lower status population) has **Strong Negative Correlation** -0.74 -> more poverty, ower price
+- `PTRATIO`(Pupil-teacher ration) has **Moderate Negative Correlation** -> Worse schools = lower price
+- `CHAS`(Charles river dummy variable) has **Weak Positive correlation** -> slight boost if house is near river
+- From the above graph
+  - Positve: RM, CHAS, B -> This features we can use
+  - Negative: LSTAT, PTRATIO, NOX -> This features we cannot use
+It's show the **correaltion coefficient** between every **pair of feature** including the target variable `PRICE`
+Correlation values range from -1 to 1:
+- +1 -> Perfect positive correlation
+- -1 -> perfect negative correlation
+-  0  -> no linear relation
+
+
+df.corr() -> calculate pearsona correlation for all pairs
+
+annot=True -> shows the values inside each cell
+
+
+
+### Prepare Data for training ###
+X = boston_house_df.drop('medv', axis=1) # Include all features excluding 'medv' col
+y = boston_house_df['medv'] # This is the 'col' what we want to predict
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+- From the above we drop the coloumn `medv` because this is what we want to `predict`
+- All the other columns like 'crim', 'rm', 'tax', 'lstat', etc. are the features.
+
+### Train the Linear Regression Model ###
+model = LinearRegression()
+model.fit(X_train, y_train)  # Training the model
+
+#Coefficients
+print("Model Coefficients:")
+print(pd.Series(model.coef_, index=X.columns))
+
+# Intercept
+print("Intercepts:", model.intercept_)
+### Predict and Evaluate ###
+# Predict on test data
+# This model is learned to predict prices for houses it's never seen(test data)
+y_pred = model.predict(X_test) 
+
+
+# Evaluation
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print("Mean Squared Error (MSE):", mse)
+print("R-Squared (R2 Score):", r2)
+
+From the above evalution
+- MSE is 24.4 if we sq root the 24.4 ~ 4.9 on average
+  - Since house prices in this dataset range from ~5 to 50, being off by ~5 is reasonable but can better
+- R2 Score is 0.667 = 66.7%
+  - which means our model explain `66.7%` of the variation in house prices.
+### Visualize Actual VS Predicted ###
+plt.scatter(y_test, y_pred, color="blue")
+plt.xlabel("Actual Prices")
+plt.ylabel("Predicted Prices")
+plt.title("Actual VS Predicted House Prices")
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+plt.show();
+From the graph we can say that
+- Blue dot on red line -> Perfect Prediction
+- Blue dot above red line -> Model Predicted too high
+- Blue dot below red line -> Model Predicted too low
+- Dots close to line -> Good accuracy
+- Dots far from line -> High error or outliers
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+A5 : 
+
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+data=pd.read_csv("Social_Network_Ads.csv")
+data.head()
+
+
+X=data[['Age','EstimatedSalary']]
+Y=data['Purchased']
+
+X_train,X_test,y_train,y_test=train_test_split(X,Y,test_size=0.25)
+
+sc=StandardScaler()
+X_train=sc.fit_transform(X_train)
+X_test=sc.fit_transform(X_test)
+
+lr=LogisticRegression()
+lr.fit(X_train,y_train)
+y_pred=lr.predict(X_test)
+
+print(y_pred)
+
+from sklearn.metrics import confusion_matrix,precision_score,accuracy_score,recall_score
+cm=confusion_matrix(y_test,y_pred)
+tn=cm[0][0]
+fp=cm[0][1]
+fn=cm[1][0]
+tp=cm[1][1]
+
+precision=precision_score(y_test,y_pred)
+accuracy=accuracy_score(y_test,y_pred)
+error=1-accuracy
+recall=recall_score(y_test,y_pred)
+
+print("confusion matrix \n",cm)
+print("TN:",tn,"FN:",fn,"TP",tp,"FP",fp)
+print("precision : %2f"%precision)
+print("error : %2f"%error)
+print("recall : %2f"%recall)
+print("accuracy : %2f"%accuracy)
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+A6 :
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix,recall_score,accuracy_score,precision_score
+
+data=pd.read_csv("iris.csv")
+data.head()
+
+X=data[['sepal_length','sepal_width','petal_length','petal_width']]
+Y=data['species']
+
+X_train,X_test,y_train,y_test=train_test_split(X,Y,test_size=0.3)
+
+nb=GaussianNB()
+nb.fit(X_train,y_train)
+y_pred=nb.predict(X_test)
+
+print(y_pred)
+
+cm=confusion_matrix(y_test,y_pred)
+tn=cm[0][0]
+fp=cm[0][1]
+fn=cm[1][0]
+tp=cm[1][1]
+
+precision=precision_score(y_test,y_pred,average='macro')
+accuracy=accuracy_score(y_test,y_pred)
+error=1-accuracy
+recall=recall_score(y_test,y_pred,average='macro')
+
+print("confusion matrix\n",cm)
+print("TP",tp,"FP",fp,"TN",tn,"FN",fn,"\n")
+print("precision = %2f"%precision)
+print("accuracy = %2f"%accuracy)
+print("recall = %2f"%recall)
+print("error rate = %2f"%error)
+
+----------------------------------------------------------------------------------------------------------------------
+
+A7 :
+
+#Tokenization: Split the text into words or tokens.
+#POS Tagging: Tag each token with its part of speech.
+#Stop words removal: Remove common stop words.
+#Stemming: Reduce words to their root form using stemming.
+#Lemmatization: Reduce words to their base or dictionary form using lemmatization.
+    
+# Install libraries if needed
+# !pip install nltk scikit-learn
+
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Sample document
+doc = "Natural Language Processing is a fascinating field of Artificial Intelligence that focuses on the interaction between computers and humans through language."
+
+# Preprocessing
+tokens = doc.split()  # just simple split
+tokens = [w for w in tokens if w.isalpha()]  # Keep only alphabet words
+tokens = [w.lower() for w in tokens if w.lower() not in stopwords.words('english')]
+
+stemmer = PorterStemmer()
+lemmatizer = WordNetLemmatizer()
+
+stems = [stemmer.stem(w) for w in tokens]
+lemmas = [lemmatizer.lemmatize(w) for w in tokens]
+
+print("Tokens:", tokens)
+print("Stems:", stems)
+print("Lemmas:", lemmas)
+
+# TF-IDF
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform([doc])
+
+# Print TF-IDF
+for word, score in zip(vectorizer.get_feature_names_out(), X.toarray()[0]):
+    if score > 0:
+        print(word, ":", round(score, 4))
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+A8 :
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+from seaborn import load_dataset
+
+# Load Titanic dataset from Seaborn
+titanic_df = sns.load_dataset("titanic")
+
+# Display the first few rows of the dataset to understand its structure
+print(titanic_df.head())
+
+# Use Seaborn to visualize patterns in the data
+# For example, let's create a count plot of survival based on passenger class
+sns.countplot(x='survived', hue='class', data=titanic_df)
+plt.title('Survival Count by Passenger Class')
+plt.show()
+
+# Now, let's plot a histogram to visualize the distribution of ticket prices
+sns.histplot(titanic_df['fare'], kde=True)
+plt.title('Distribution of Ticket Prices')
+plt.xlabel('Fare')
+plt.ylabel('Frequency')
+plt.show()
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+A9 :
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load Titanic dataset from Seaborn
+titanic_df = sns.load_dataset("titanic")
+
+# Plotting box plot for distribution of age with respect to gender and survival status
+sns.boxplot(x='sex', y='age', hue='survived', data=titanic_df)
+plt.title('Distribution of Age by Gender and Survival Status')
+plt.xlabel('Gender')
+plt.ylabel('Age')
+plt.show()
+
+-----------------------------------------------------------------------------------------------------------------------
+
+A10 :
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Download the Iris dataset from UCI Machine Learning Repository
+iris_url = "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data"
+
+# Define column names for the dataset
+column_names = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class']
+
+# Load the dataset into a DataFrame
+iris_df = pd.read_csv(iris_url, names=column_names)
+
+# 1. List down the features and their types
+print("Features and their types:")
+print(iris_df.dtypes)
+
+# 2. Create a histogram for each feature
+iris_df.hist(figsize=(10, 8))
+plt.suptitle("Histograms of Iris Dataset Features")
+plt.show()
+
+# 3. Create a box plot for each feature
+plt.figure(figsize=(10, 8))
+sns.boxplot(data=iris_df)
+plt.title("Boxplot of Iris Dataset Features")
+plt.show()
+
+# 4. Compare distributions and identify outliers
+# We can visually inspect the histograms and box plots to compare distributions and identify outliers.
+
+# Plot histograms and box plots side by side for comparison
+fig, axs = plt.subplots(2, 4, figsize=(20, 10))
+
+# Histograms
+for i, col in enumerate(iris_df.columns[:-1]):
+    sns.histplot(data=iris_df, x=col, ax=axs[0, i], kde=True)
+    axs[0, i].set_title(f"Histogram of {col}")
+
+# Box plots
+for i, col in enumerate(iris_df.columns[:-1]):
+    sns.boxplot(data=iris_df, y=col, ax=axs[1, i])
+    axs[1, i].set_title(f"Boxplot of {col}")
+
+plt.tight_layout()
+plt.show()
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+A10 :
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+iris_df = pd.read_csv('./data/iris.csv')
+
+iris_df.head()
+
+print("Features and their types:")
+for col in iris_df.columns:
+    if iris_df[col].dtype == 'object' or iris_df[col].dtype.name == 'category':
+        print(f"{col}: Categorical")
+    else:
+        print(f"{col}: Numeric")
+
+
+iris_df.iloc[:, :-1].hist(figsize=(10, 6), bins=15, edgecolor='black') # iloc[:, : -1] this will exclude the last column
+plt.suptitle("Histograms of Iris Features", fontsize=16) # Add title at the center 
+plt.show()
+
+for col in iris_df[:-1]:
+    subset = iris_df[col]
+    print(f"{col} min: {subset.min()}")
+    print(f"{col} max: {subset.max()}\n")
+
+
+plt.figure(figsize=(10, 8))
+sns.boxplot(data=iris_df)
+plt.title("Boxplot of Iris Dataset Features")
+plt.show()
+
+
+# 4. Outlier Detection Summary
+print("\nOutlier Detection (using IQR method):")
+for column in iris_df.columns[:-1]:
+    Q1 = iris_df[column].quantile(0.25)
+    Q3 = iris_df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    outliers = iris_df[(iris_df[column] < Q1 - 1.5 * IQR) | (iris_df[column] > Q3 + 1.5 * IQR)]
+    print(f"{column}: {len(outliers)} outliers")
